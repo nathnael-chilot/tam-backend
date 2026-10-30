@@ -1,0 +1,381 @@
+// Prisma schema for Training Academy Management (Tsehafi)
+// PostgreSQL datasource configured for multi-tenancy and audit
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  REGISTRAR
+  CASHIER
+  TRAINER
+}
+
+enum MemberStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum StudentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+  FROZEN
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum BatchStatus {
+  DRAFT
+  ENROLLING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum EnrolmentStatus {
+  ENROLLED
+  TRANSFERRED
+  DROPPED
+  FROZEN
+}
+
+enum AttendStatus {
+  PRESENT
+  LATE
+  ABSENT
+  EXCUSED
+}
+
+enum PayMethod {
+  CASH
+  TELEBIRR
+  CBE_BIRR
+  BANK_TRANSFER
+  OTHER
+}
+
+enum PaymentStatus {
+  POSTED
+  VOIDED
+}
+
+enum CertStatus {
+  ISSUED
+  REVOKED
+}
+
+enum CalendarKind {
+  ETHIOPIAN
+  GREGORIAN
+}
+
+enum Locale {
+  am
+  en
+  om
+  ti
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+model Tenant {
+  id              String        @id @default(uuid())
+  name            String
+  nameAm          String?
+  type            String?
+  city            String?
+  subcity         String?
+  phone           String?
+  tin             String?
+  defaultLocale   Locale        @default(am)
+  defaultCalendar CalendarKind  @default(ETHIOPIAN)
+  timezone        String        @default("Africa/Addis_Ababa")
+  status          TenantStatus  @default(TRIAL)
+  planId          String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  memberships     Membership[]
+  students        Student[]
+  courses         Course[]
+  trainers        Trainer[]
+  rooms           Room[]
+  batches         Batch[]
+  sessions        Session[]
+  enrolments      Enrolment[]
+  payments        Payment[]
+  certificates    Certificate[]
+}
+
+model User {
+  id           String        @id @default(uuid())
+  phone        String?       @unique
+  email        String?       @unique
+  passwordHash String?
+  name         String
+  nameAm       String?
+  locale       Locale?
+  theme        Theme?
+  calendar     CalendarKind?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  memberships  Membership[]
+  trainers     Trainer[]
+}
+
+model Membership {
+  id        String       @id @default(uuid())
+  tenantId  String
+  userId    String
+  role      Role
+  status    MemberStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+}
+
+model Student {
+  id            String        @id @default(uuid())
+  tenantId      String
+  studentNo     String
+  firstName     String
+  lastName      String
+  firstNameAm   String?
+  lastNameAm    String?
+  sex           Sex?
+  dob           DateTime?     @db.Date
+  phone         String?
+  phoneNorm     String?
+  guardianName  String?
+  guardianPhone String?
+  address       String?
+  status        StudentStatus @default(ACTIVE)
+  photoKey      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrolments    Enrolment[]
+  payments      Payment[]
+  certificates  Certificate[]
+
+  @@unique([tenantId, studentNo])
+  @@index([tenantId, phoneNorm])
+}
+
+model Course {
+  id                    String        @id @default(uuid())
+  tenantId              String
+  name                  String
+  nameAm                String?
+  durationDays          Int?
+  totalHours            Int?
+  defaultFeeMinor       BigInt        @default(0)
+  requiredAttendancePct Int           @default(80)
+  active                Boolean       @default(true)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  tenant                Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  batches               Batch[]
+}
+
+model Trainer {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String?
+  name      String
+  nameAm    String?
+  phone     String?
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  batches   Batch[]
+  sessions  Session[]
+}
+
+model Room {
+  id        String    @id @default(uuid())
+  tenantId  String
+  name      String
+  capacity  Int?
+  createdAt DateTime  @default(now())
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  batches   Batch[]
+  sessions  Session[]
+}
+
+model Batch {
+  id        String      @id @default(uuid())
+  tenantId  String
+  code      String
+  courseId  String
+  trainerId String?
+  roomId    String?
+  capacity  Int
+  startDate DateTime    @db.Date
+  endDate   DateTime?   @db.Date
+  status    BatchStatus @default(DRAFT)
+  pattern   Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  course    Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  trainer   Trainer?    @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  room      Room?       @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  sessions  Session[]
+  enrolments Enrolment[]
+  certificates Certificate[]
+
+  @@unique([tenantId, code])
+}
+
+model Session {
+  id        String        @id @default(uuid())
+  tenantId  String
+  batchId   String
+  date      DateTime      @db.Date
+  startTime String
+  endTime   String
+  roomId    String?
+  trainerId String?
+  status    SessionStatus @default(SCHEDULED)
+  note      String?
+  createdAt DateTime      @default(now())
+
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  batch     Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  room      Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  trainer   Trainer?      @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  attendances AttendanceRecord[]
+
+  @@index([tenantId, batchId, date])
+}
+
+model Enrolment {
+  id             String          @id @default(uuid())
+  tenantId       String
+  studentId      String
+  batchId        String
+  enrolledOn     DateTime        @db.Date
+  status         EnrolmentStatus @default(ENROLLED)
+  feeMinor       BigInt
+  discountMinor  BigInt          @default(0)
+  discountReason String?
+  droppedOn      DateTime?       @db.Date
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student        Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batch          Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, studentId, batchId])
+}
+
+model AttendanceRecord {
+  id         String       @id @default(uuid())
+  tenantId   String
+  sessionId  String
+  studentId  String
+  status     AttendStatus
+  note       String?
+  markedById String
+  markedAt   DateTime     @default(now())
+  editedAt   DateTime?
+  editReason String?
+  clientId   String?
+
+  session    Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, sessionId, studentId])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  tenantId    String
+  studentId   String
+  amountMinor BigInt
+  method      PayMethod
+  reference   String?
+  paidOn      DateTime      @db.Date
+  receivedById String
+  status      PaymentStatus @default(POSTED)
+  voidReason  String?
+  createdAt   DateTime      @default(now())
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student     Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, method, reference])
+}
+
+model Certificate {
+  id           String     @id @default(uuid())
+  tenantId     String
+  studentId    String
+  batchId      String
+  number       String
+  issuedOn     DateTime   @db.Date
+  status       CertStatus @default(ISSUED)
+  verifyToken  String     @unique
+  pdfKey       String?
+  revokedReason String?
+  createdAt    DateTime   @default(now())
+
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batch        Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, number])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String?
+  actorId   String
+  action    String
+  entity    String
+  entityId  String
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime @default(now())
+}
