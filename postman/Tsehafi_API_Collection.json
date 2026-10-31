@@ -65,6 +65,11 @@
       "key": "attendanceRecordId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -643,6 +648,112 @@
               "raw": "{{baseUrl}}/v1/attendance/batches/{{batchId}}/register",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "attendance", "batches", "{{batchId}}", "register"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Payments & The Money Core",
+      "item": [
+        {
+          "name": "Record Fee Payment (Auto-Receipt & Allocation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.payment && json.payment.id) {",
+                  "        pm.collectionVariables.set('paymentId', json.payment.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"amount\": 3500,\n  \"method\": \"TELEBIRR\",\n  \"reference\": \"TLB-29482910\",\n  \"paidOn\": \"2026-10-30\",\n  \"notes\": \"Initial tuition instalment payment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Query Payments Broadsheet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments?page=1&limit=20&status=POSTED",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "status", "value": "POSTED" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Printable Receipt Voucher & Reprint Watermark",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/{{paymentId}}/receipt",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "{{paymentId}}", "receipt"]
+            }
+          }
+        },
+        {
+          "name": "Get Student Financial Statement & Ledger History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/students/{{studentId}}/statement",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "students", "{{studentId}}", "statement"]
+            }
+          }
+        },
+        {
+          "name": "Void Payment with Audit Reason",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voidReason\": \"Mistaken duplicate transaction recorded by cashier\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/{{paymentId}}/void",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "{{paymentId}}", "void"]
+            }
+          }
+        },
+        {
+          "name": "Get End-of-Day Cash-Up Closing Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/cash-up",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "cash-up"]
             }
           }
         }
