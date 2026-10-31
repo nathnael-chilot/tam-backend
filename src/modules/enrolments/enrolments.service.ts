@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateEnrolmentDto } from './dto/create-enrolment.dto';
 import { toSantims } from '../../common/money/money';
-import { EnrolmentStatus } from '@prisma/client';
+import { EnrolmentStatus, LedgerKind, InstalmentStatus } from '@prisma/client';
 
 @Injectable()
 export class EnrolmentsService {
@@ -61,23 +61,73 @@ export class EnrolmentsService {
     const discountMinor =
       dto.discount !== undefined ? toSantims(dto.discount) : 0n;
 
-    return this.prisma.enrolment.create({
-      data: {
-        tenantId,
-        studentId: dto.studentId,
-        batchId: dto.batchId,
-        enrolledOn: new Date(),
-        status: EnrolmentStatus.ENROLLED,
-        feeMinor,
-        discountMinor,
-        discountReason: dto.discountReason?.trim(),
-      },
-      include: {
-        student: true,
-        batch: {
-          include: { course: true },
+    return this.prisma.$transaction(async (tx) => {
+      const enrolment = await tx.enrolment.create({
+        data: {
+          tenantId,
+          studentId: dto.studentId,
+          batchId: dto.batchId,
+          enrolledOn: new Date(),
+          status: EnrolmentStatus.ENROLLED,
+          feeMinor,
+          discountMinor,
+          discountReason: dto.discountReason?.trim(),
         },
-      },
+        include: {
+          student: true,
+          batch: {
+            include: { course: true },
+          },
+        },
+      });
+
+      // Post initial CHARGE ledger entry
+      await tx.ledgerEntry.create({
+        data: {
+          tenantId,
+          studentId: dto.studentId,
+          enrolmentId: enrolment.id,
+          kind: LedgerKind.CHARGE,
+          amountMinor: feeMinor,
+          refType: 'ENROLMENT',
+          refId: enrolment.id,
+          occurredOn: new Date(),
+        },
+      });
+
+      // If discount applied, post negative DISCOUNT ledger entry
+      if (discountMinor > 0n) {
+        await tx.ledgerEntry.create({
+          data: {
+            tenantId,
+            studentId: dto.studentId,
+            enrolmentId: enrolment.id,
+            kind: LedgerKind.DISCOUNT,
+            amountMinor: -discountMinor,
+            refType: 'DISCOUNT',
+            refId: enrolment.id,
+            occurredOn: new Date(),
+          },
+        });
+      }
+
+      // Create primary instalment for payable balance
+      const netPayableMinor = feeMinor - discountMinor;
+      if (netPayableMinor > 0n) {
+        await tx.instalment.create({
+          data: {
+            tenantId,
+            enrolmentId: enrolment.id,
+            seq: 1,
+            dueDate: batch.startDate || new Date(),
+            amountMinor: netPayableMinor,
+            paidMinor: 0n,
+            status: InstalmentStatus.PENDING,
+          },
+        });
+      }
+
+      return enrolment;
     });
   }
 
