@@ -20,7 +20,11 @@ DECLARE
         'PaymentAllocation',
         'Receipt',
         'ReceiptCounter',
-        'CertificateCounter'
+        'CertificateCounter',
+        'SmsTemplate',
+        'NotificationSettings',
+        'SmsLog',
+        'InAppNotification'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tenant_tables LOOP

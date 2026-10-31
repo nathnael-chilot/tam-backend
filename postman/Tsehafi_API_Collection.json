@@ -941,6 +941,143 @@
           }
         }
       ]
+    },
+    {
+      "name": "8. Notifications & SMS Engine",
+      "item": [
+        {
+          "name": "Get Notification Settings & SMS Credits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Update Notification Settings & Quiet Hours",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"remindBeforeDueDays\": 3,\n  \"remindOnDueDate\": true,\n  \"remindWhenOverdue\": true,\n  \"remindOverdueDays\": 7,\n  \"notifyAbsence\": true,\n  \"quietHoursEnabled\": true,\n  \"quietHoursStart\": \"20:00\",\n  \"quietHoursEnd\": \"07:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Recharge SMS Credits (Top-up)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credits\": 500,\n  \"paymentReference\": \"TELEBIRR-TX-987123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/credits/recharge",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "credits", "recharge"]
+            }
+          }
+        },
+        {
+          "name": "List Bilingual SMS Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "templates"]
+            }
+          }
+        },
+        {
+          "name": "Update SMS Template Copy",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contentAm\": \"ሰላም [የተማሪ ስም]፣ የሉሲ አካዳሚ የትምህርት ክፍያ [መጠን] ብር ክፍያ ቀን አልፏል። እባክዎ በአፋጣኝ በቴሌብር ወይም በባንክ ይክፈሉ። እናመሰግናለን።\",\n  \"contentEn\": \"Notice: {{student_name}}, your payment of {{amount}} Br for {{course_name}} is overdue. Please settle promptly.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/templates/PAYMENT_OVERDUE",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "templates", "PAYMENT_OVERDUE"]
+            }
+          }
+        },
+        {
+          "name": "Send Single Ad-hoc SMS",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0911445566\",\n  \"message\": \"ሰላም ሰላማዊት ተስፋዬ፣ ነገ ጠዋት 3:00 ሰዓት የኪራር እና በገና ልምምድ ይካሄዳል።\",\n  \"triggerType\": \"GENERAL_ANNOUNCEMENT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/sms/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "sms", "send"]
+            }
+          }
+        },
+        {
+          "name": "Send Batch Overdue Reminders",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"triggerType\": \"PAYMENT_OVERDUE\",\n  \"recipients\": [\n    {\n      \"phone\": \"0911445566\",\n      \"name\": \"Selamawit Tesfaye\",\n      \"amount\": \"1,500.00\",\n      \"dueDate\": \"ጥቅምት 15\"\n    },\n    {\n      \"phone\": \"0922334455\",\n      \"name\": \"Dawit Alemayehu\",\n      \"amount\": \"2,250.00\",\n      \"dueDate\": \"ጥቅምት 18\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/sms/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "sms", "batch"]
+            }
+          }
+        },
+        {
+          "name": "Query SMS Outbox Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/sms/logs?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "sms", "logs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get In-App Staff Notifications Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/notifications/in-app",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "notifications", "in-app"]
+            }
+          }
+        }
+      ]
     }
   ]
 }

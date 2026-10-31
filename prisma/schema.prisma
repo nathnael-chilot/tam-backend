@@ -137,22 +137,27 @@ model Tenant {
   timezone        String        @default("Africa/Addis_Ababa")
   status          TenantStatus  @default(TRIAL)
   planId          String?
+  smsCredits      Int           @default(200)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  memberships     Membership[]
-  students        Student[]
-  courses         Course[]
-  trainers        Trainer[]
-  rooms           Room[]
-  batches         Batch[]
-  sessions        Session[]
-  enrolments      Enrolment[]
-  payments        Payment[]
-  certificates    Certificate[]
-  ledgerEntries   LedgerEntry[]
-  instalments     Instalment[]
-  receipts        Receipt[]
+  memberships          Membership[]
+  students             Student[]
+  courses              Course[]
+  trainers             Trainer[]
+  rooms                Room[]
+  batches              Batch[]
+  sessions             Session[]
+  enrolments           Enrolment[]
+  payments             Payment[]
+  certificates         Certificate[]
+  ledgerEntries        LedgerEntry[]
+  instalments          Instalment[]
+  receipts             Receipt[]
+  smsTemplates         SmsTemplate[]
+  notificationSettings NotificationSettings?
+  smsLogs              SmsLog[]
+  inAppNotifications   InAppNotification[]
 }
 
 model User {
@@ -168,8 +173,9 @@ model User {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  memberships  Membership[]
-  trainers     Trainer[]
+  memberships        Membership[]
+  trainers           Trainer[]
+  inAppNotifications InAppNotification[]
 }
 
 model Membership {
@@ -203,6 +209,7 @@ model Student {
   address       String?
   status        StudentStatus @default(ACTIVE)
   photoKey      String?
+  smsConsent    Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
@@ -212,6 +219,7 @@ model Student {
   payments      Payment[]
   certificates  Certificate[]
   ledgerEntries LedgerEntry[]
+  smsLogs       SmsLog[]
 
   @@unique([tenantId, studentNo])
   @@index([tenantId, phoneNorm])
@@ -485,4 +493,101 @@ model AuditLog {
   after     Json?
   ip        String?
   createdAt DateTime @default(now())
+}
+
+enum SmsTriggerType {
+  PAYMENT_REMINDER_DUE
+  PAYMENT_OVERDUE
+  ABSENCE_ALERT
+  PAYMENT_CONFIRMATION
+  BATCH_BROADCAST
+  GENERAL_ANNOUNCEMENT
+}
+
+enum SmsStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  SUPPRESSED_QUIET_HOURS
+}
+
+enum NotificationType {
+  PAYMENT
+  ATTENDANCE
+  CREDIT_LOW
+  SYSTEM
+}
+
+model SmsTemplate {
+  id          String         @id @default(uuid())
+  tenantId    String
+  triggerType SmsTriggerType
+  name        String
+  contentAm   String
+  contentEn   String
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, triggerType])
+}
+
+model NotificationSettings {
+  id                  String   @id @default(uuid())
+  tenantId            String   @unique
+  remindBeforeDueDays Int      @default(3)
+  remindOnDueDate     Boolean  @default(true)
+  remindWhenOverdue   Boolean  @default(true)
+  remindOverdueDays   Int      @default(7)
+  notifyAbsence       Boolean  @default(true)
+  quietHoursEnabled   Boolean  @default(true)
+  quietHoursStart     String   @default("20:00")
+  quietHoursEnd       String   @default("07:00")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model SmsLog {
+  id             String         @id @default(uuid())
+  tenantId       String
+  studentId      String?
+  recipientPhone String
+  recipientName  String?
+  message        String
+  segments       Int            @default(1)
+  creditsUsed    Int            @default(1)
+  triggerType    SmsTriggerType
+  status         SmsStatus      @default(SENT)
+  providerRef    String?
+  errorMessage   String?
+  createdAt      DateTime       @default(now())
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student        Student?       @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, triggerType])
+}
+
+model InAppNotification {
+  id        String           @id @default(uuid())
+  tenantId  String
+  userId    String?
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, isRead])
+  @@index([tenantId, createdAt])
 }

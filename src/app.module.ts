@@ -11,6 +11,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     CertificatesModule,
     ReportsModule,
     DashboardModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
