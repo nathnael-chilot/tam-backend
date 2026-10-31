@@ -70,6 +70,16 @@
       "key": "paymentId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "certificateId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verifyToken",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -754,6 +764,179 @@
               "raw": "{{baseUrl}}/v1/payments/cash-up",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "payments", "cash-up"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Dashboard, Reports & Certificates",
+      "item": [
+        {
+          "name": "Get Executive Owner Dashboard Pulse",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/dashboard/owner",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "dashboard", "owner"]
+            }
+          }
+        },
+        {
+          "name": "Get Ethiopian Calendar Monthly Revenue Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/reports/revenue",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reports", "revenue"]
+            }
+          }
+        },
+        {
+          "name": "Get Aging Debtors Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/reports/aging",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reports", "aging"]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance Compliance Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/reports/attendance",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reports", "attendance"]
+            }
+          }
+        },
+        {
+          "name": "Export Revenue Report to CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/reports/export/revenue",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reports", "export", "revenue"]
+            }
+          }
+        },
+        {
+          "name": "Check Certificate Graduation Eligibility",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/certificates/eligibility?studentId={{studentId}}&batchId={{batchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "certificates", "eligibility"],
+              "query": [
+                { "key": "studentId", "value": "{{studentId}}" },
+                { "key": "batchId", "value": "{{batchId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Issue Certificate of Completion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.certificate && json.certificate.id) {",
+                  "        pm.collectionVariables.set('certificateId', json.certificate.id);",
+                  "    }",
+                  "    if (json.verifyToken) {",
+                  "        pm.collectionVariables.set('verifyToken', json.verifyToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"notes\": \"Graduated with high distinction\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/certificates",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "certificates"]
+            }
+          }
+        },
+        {
+          "name": "Query Issued Certificates Directory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/certificates?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "certificates"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Certificate Details for A4 Rendering",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/certificates/{{certificateId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "certificates", "{{certificateId}}"]
+            }
+          }
+        },
+        {
+          "name": "Public Verification of Certificate (No Auth Required)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/certificates/verify/{{verifyToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "certificates", "verify", "{{verifyToken}}"]
+            }
+          }
+        },
+        {
+          "name": "Revoke Certificate with Mandatory Reason",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"revokedReason\": \"Disciplinary review found falsified prerequisite qualification\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/certificates/{{certificateId}}/revoke",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "certificates", "{{certificateId}}", "revoke"]
             }
           }
         }
