@@ -1078,6 +1078,241 @@
           }
         }
       ]
+    },
+    {
+      "name": "9. Subscription & Platform Admin",
+      "item": [
+        {
+          "name": "Get Current Academy Subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/subscription/current",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "subscription", "current"]
+            }
+          }
+        },
+        {
+          "name": "Create Subscription Upgrade/Renewal Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"GROWTH\",\n  \"cadence\": \"MONTHLY\",\n  \"paymentMethod\": \"BANK_TRANSFER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/subscription/invoices",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "subscription", "invoices"]
+            }
+          }
+        },
+        {
+          "name": "Upload Bank Transfer Deposit Slip",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referenceNumber\": \"CBE-TX-849201\",\n  \"slipBase64\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/subscription/invoices/{{invoiceId}}/slip",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "subscription", "invoices", "{{invoiceId}}", "slip"]
+            }
+          }
+        },
+        {
+          "name": "Initialize Chapa Online Checkout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/subscription/invoices/{{invoiceId}}/chapa-checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "subscription", "invoices", "{{invoiceId}}", "chapa-checkout"]
+            }
+          }
+        },
+        {
+          "name": "Chapa Webhook Ingestion",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-chapa-signature", "value": "{{chapaSignature}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"charge.complete\",\n  \"tx_ref\": \"TSE-INV-2017-0001-1730000000\",\n  \"status\": \"success\",\n  \"amount\": 2400,\n  \"currency\": \"ETB\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/subscription/chapa-webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "subscription", "chapa-webhook"]
+            }
+          }
+        },
+        {
+          "name": "Get Academy Subscription Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/subscription/invoices",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "subscription", "invoices"]
+            }
+          }
+        },
+        {
+          "name": "Admin: List Academies Directory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/academies?search=&status=ALL",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "academies"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "ALL" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin: Get Academy 360 Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/academies/{{academyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "academies", "{{academyId}}"]
+            }
+          }
+        },
+        {
+          "name": "Admin: Update Academy Status (Suspend / Activate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SUSPENDED\",\n  \"reason\": \"Compliance inquiry\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/academies/{{academyId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "academies", "{{academyId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Admin: Change Academy Subscription Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"PRO\",\n  \"reason\": \"Granted institutional upgrade\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/academies/{{academyId}}/plan",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "academies", "{{academyId}}", "plan"]
+            }
+          }
+        },
+        {
+          "name": "Admin: Impersonate Academy (Audited Session)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Support ticket #1042 - troubleshooting attendance sync\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/academies/{{academyId}}/impersonate",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "academies", "{{academyId}}", "impersonate"]
+            }
+          }
+        },
+        {
+          "name": "Admin: Get Pending Payments Verification Queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/payments/pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "payments", "pending"]
+            }
+          }
+        },
+        {
+          "name": "Admin: Approve Payment Slip",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/payments/{{invoiceId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "payments", "{{invoiceId}}", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Admin: Reject Payment Slip",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Reference number not found in bank ledger\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/payments/{{invoiceId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "payments", "{{invoiceId}}", "reject"]
+            }
+          }
+        },
+        {
+          "name": "Admin: Get Platform Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/audit-logs?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "audit-logs"],
+              "query": [
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

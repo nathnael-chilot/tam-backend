@@ -24,7 +24,9 @@ DECLARE
         'SmsTemplate',
         'NotificationSettings',
         'SmsLog',
-        'InAppNotification'
+        'InAppNotification',
+        'Subscription',
+        'SubscriptionInvoice'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tenant_tables LOOP

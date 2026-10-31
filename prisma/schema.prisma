@@ -158,24 +158,29 @@ model Tenant {
   notificationSettings NotificationSettings?
   smsLogs              SmsLog[]
   inAppNotifications   InAppNotification[]
+  subscription         Subscription?
+  subscriptionInvoices SubscriptionInvoice[]
+  adminAuditLogs       AdminAuditLog[]       @relation("AdminAuditTenant")
 }
 
 model User {
-  id           String        @id @default(uuid())
-  phone        String?       @unique
-  email        String?       @unique
-  passwordHash String?
-  name         String
-  nameAm       String?
-  locale       Locale?
-  theme        Theme?
-  calendar     CalendarKind?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id              String        @id @default(uuid())
+  phone           String?       @unique
+  email           String?       @unique
+  passwordHash    String?
+  name            String
+  nameAm          String?
+  isPlatformAdmin Boolean       @default(false)
+  locale          Locale?
+  theme           Theme?
+  calendar        CalendarKind?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   memberships        Membership[]
   trainers           Trainer[]
   inAppNotifications InAppNotification[]
+  adminAuditLogs     AdminAuditLog[]     @relation("AdminAuditActor")
 }
 
 model Membership {
@@ -591,3 +596,127 @@ model InAppNotification {
   @@index([tenantId, isRead])
   @@index([tenantId, createdAt])
 }
+
+// -------------------------------------------------------------
+// Phase 7: Subscriptions, Billing, and Platform Admin Console
+// -------------------------------------------------------------
+
+enum SubscriptionTier {
+  STARTER
+  GROWTH
+  PRO
+}
+
+enum BillingCadence {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  GRACE_PERIOD
+  PAST_DUE
+  CANCELLED
+}
+
+enum PlatformPaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PlatformPayMethod {
+  BANK_TRANSFER
+  TELEBIRR
+  CBE_BIRR
+  CHAPA
+}
+
+enum AdminActionType {
+  IMPERSONATE_TENANT
+  APPROVE_PAYMENT
+  REJECT_PAYMENT
+  CHANGE_PLAN
+  SUSPEND_TENANT
+  ACTIVATE_TENANT
+  UPDATE_LIMITS
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  tenantId           String             @unique
+  tier               SubscriptionTier   @default(STARTER)
+  cadence            BillingCadence     @default(MONTHLY)
+  status             SubscriptionStatus @default(TRIAL)
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  gracePeriodEndsAt  DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoices           SubscriptionInvoice[]
+}
+
+model SubscriptionInvoice {
+  id               String                @id @default(uuid())
+  subscriptionId   String
+  tenantId         String
+  invoiceNo        String                @unique
+  tier             SubscriptionTier
+  cadence          BillingCadence
+  amountSantims    BigInt
+  status           PlatformPaymentStatus @default(PENDING)
+  paymentMethod    PlatformPayMethod     @default(BANK_TRANSFER)
+  referenceNumber  String?
+  slipUrl          String?
+  slipFileName     String?
+  chapaTxRef       String?               @unique
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  rejectionReason  String?
+  paidAt           DateTime?
+  periodStart      DateTime
+  periodEnd        DateTime
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  subscription     Subscription          @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([status])
+}
+
+model AdminAuditLog {
+  id             String          @id @default(uuid())
+  adminUserId    String
+  action         AdminActionType
+  targetTenantId String?
+  reason         String?
+  details        Json?
+  ipAddress      String?
+  createdAt      DateTime        @default(now())
+
+  adminUser      User            @relation("AdminAuditActor", fields: [adminUserId], references: [id], onDelete: Cascade)
+  targetTenant   Tenant?         @relation("AdminAuditTenant", fields: [targetTenantId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId])
+  @@index([targetTenantId])
+  @@index([action])
+}
+
+model SystemAnnouncement {
+  id             String          @id @default(uuid())
+  title          String
+  titleAm        String?
+  content        String
+  contentAm      String?
+  isActive       Boolean         @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime        @default(now())
+}
+

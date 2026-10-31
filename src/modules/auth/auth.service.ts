@@ -81,6 +81,23 @@ export class AuthService {
         },
       });
 
+      const now = new Date();
+      const trialEnds = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const gracePeriodEnds = new Date(trialEnds.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+      await tx.subscription.create({
+        data: {
+          tenantId: tenant.id,
+          tier: 'STARTER',
+          cadence: 'MONTHLY',
+          status: 'TRIAL',
+          trialEndsAt: trialEnds,
+          currentPeriodStart: now,
+          currentPeriodEnd: trialEnds,
+          gracePeriodEndsAt: gracePeriodEnds,
+        },
+      });
+
       return { tenant, user, membership };
     });
 
@@ -90,6 +107,7 @@ export class AuthService {
       phone: result.user.phone || undefined,
       activeTenantId: result.tenant.id,
       role: Role.OWNER,
+      isPlatformAdmin: result.user.isPlatformAdmin,
     });
 
     return {
@@ -99,6 +117,7 @@ export class AuthService {
         nameAm: result.user.nameAm,
         email: result.user.email,
         phone: result.user.phone,
+        isPlatformAdmin: result.user.isPlatformAdmin,
       },
       tenant: {
         id: result.tenant.id,
@@ -144,19 +163,20 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials. Check your email/phone and password.');
     }
 
-    if (user.memberships.length === 0) {
+    if (user.memberships.length === 0 && !user.isPlatformAdmin) {
       throw new UnauthorizedException('No academy memberships found for this account.');
     }
 
-    // Default to first active membership
+    // Default to first active membership if available
     const activeMembership = user.memberships[0];
 
     const tokens = this.generateTokens({
       sub: user.id,
       email: user.email || undefined,
       phone: user.phone || undefined,
-      activeTenantId: activeMembership.tenantId,
-      role: activeMembership.role,
+      activeTenantId: activeMembership?.tenantId,
+      role: activeMembership?.role,
+      isPlatformAdmin: user.isPlatformAdmin,
     });
 
     return {
@@ -166,13 +186,16 @@ export class AuthService {
         nameAm: user.nameAm,
         email: user.email,
         phone: user.phone,
+        isPlatformAdmin: user.isPlatformAdmin,
       },
-      activeTenant: {
-        id: activeMembership.tenant.id,
-        name: activeMembership.tenant.name,
-        nameAm: activeMembership.tenant.nameAm,
-        role: activeMembership.role,
-      },
+      activeTenant: activeMembership
+        ? {
+            id: activeMembership.tenant.id,
+            name: activeMembership.tenant.name,
+            nameAm: activeMembership.tenant.nameAm,
+            role: activeMembership.role,
+          }
+        : null,
       memberships: user.memberships.map((m) => ({
         tenantId: m.tenantId,
         tenantName: m.tenant.name,
@@ -209,6 +232,7 @@ export class AuthService {
       locale: user.locale,
       theme: user.theme,
       calendar: user.calendar,
+      isPlatformAdmin: user.isPlatformAdmin,
       memberships: user.memberships.map((m) => ({
         tenantId: m.tenantId,
         tenantName: m.tenant.name,
@@ -224,6 +248,9 @@ export class AuthService {
     phone?: string;
     activeTenantId?: string;
     role?: string;
+    isPlatformAdmin?: boolean;
+    isImpersonating?: boolean;
+    impersonatedBy?: string;
   }) {
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: (process.env.JWT_EXPIRATION as any) || '15m',

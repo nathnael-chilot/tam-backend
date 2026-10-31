@@ -10,6 +10,9 @@ export interface JwtPayload {
   phone?: string;
   activeTenantId?: string;
   role?: string;
+  isPlatformAdmin?: boolean;
+  isImpersonating?: boolean;
+  impersonatedBy?: string;
 }
 
 @Injectable()
@@ -59,6 +62,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       phone: user.phone,
       name: user.name,
       nameAm: user.nameAm,
+      isPlatformAdmin: user.isPlatformAdmin,
+      isImpersonating: payload.isImpersonating || false,
+      impersonatedBy: payload.impersonatedBy,
       activeTenantId,
       role: activeMembership?.role,
       activeTenant: activeMembership?.tenant,

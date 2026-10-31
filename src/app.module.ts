@@ -12,6 +12,8 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { PlatformAdminModule } from './modules/platform-admin/platform-admin.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     ReportsModule,
     DashboardModule,
     NotificationsModule,
+    SubscriptionModule,
+    PlatformAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

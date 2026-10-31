@@ -18,6 +18,7 @@ import { UpdateStudentDto } from './dto/update-student.dto';
 import { QueryStudentsDto } from './dto/query-students.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
+import { PlanLimitsGuard, CheckLimit } from '../subscription/guards/plan-limits.guard';
 
 @Controller('v1/students')
 @UseGuards(JwtAuthGuard)
@@ -25,6 +26,8 @@ export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
   @Post('import')
+  @UseGuards(PlanLimitsGuard)
+  @CheckLimit('STUDENTS')
   @UseInterceptors(FileInterceptor('file'))
   async importStudents(
     @CurrentTenant() tenantId: string,
@@ -45,6 +48,8 @@ export class StudentsController {
   }
 
   @Post()
+  @UseGuards(PlanLimitsGuard)
+  @CheckLimit('STUDENTS')
   create(
     @CurrentTenant() tenantId: string,
     @Body() createStudentDto: CreateStudentDto,
