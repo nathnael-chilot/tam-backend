@@ -466,6 +466,14 @@ model ReceiptCounter {
   @@id([tenantId, year])
 }
 
+model CertificateCounter {
+  tenantId String
+  year     Int
+  next     Int
+
+  @@id([tenantId, year])
+}
+
 model AuditLog {
   id        String   @id @default(uuid())
   tenantId  String?

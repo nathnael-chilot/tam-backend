@@ -19,7 +19,8 @@ DECLARE
         'Instalment',
         'PaymentAllocation',
         'Receipt',
-        'ReceiptCounter'
+        'ReceiptCounter',
+        'CertificateCounter'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tenant_tables LOOP
