@@ -14,7 +14,12 @@ DECLARE
         'Enrolment',
         'AttendanceRecord',
         'Payment',
-        'Certificate'
+        'Certificate',
+        'LedgerEntry',
+        'Instalment',
+        'PaymentAllocation',
+        'Receipt',
+        'ReceiptCounter'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tenant_tables LOOP

@@ -84,6 +84,22 @@ enum PaymentStatus {
   VOIDED
 }
 
+enum LedgerKind {
+  CHARGE
+  PAYMENT
+  DISCOUNT
+  VOID
+  REFUND
+}
+
+enum InstalmentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  VOID
+}
+
 enum CertStatus {
   ISSUED
   REVOKED
@@ -134,6 +150,9 @@ model Tenant {
   enrolments      Enrolment[]
   payments        Payment[]
   certificates    Certificate[]
+  ledgerEntries   LedgerEntry[]
+  instalments     Instalment[]
+  receipts        Receipt[]
 }
 
 model User {
@@ -192,6 +211,7 @@ model Student {
   enrolments    Enrolment[]
   payments      Payment[]
   certificates  Certificate[]
+  ledgerEntries LedgerEntry[]
 
   @@unique([tenantId, studentNo])
   @@index([tenantId, phoneNorm])
@@ -306,6 +326,7 @@ model Enrolment {
   tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   student        Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
   batch          Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  instalments    Instalment[]
 
   @@unique([tenantId, studentId, batchId])
 }
@@ -329,42 +350,120 @@ model AttendanceRecord {
 }
 
 model Payment {
-  id          String        @id @default(uuid())
-  tenantId    String
-  studentId   String
-  amountMinor BigInt
-  method      PayMethod
-  reference   String?
-  paidOn      DateTime      @db.Date
+  id           String        @id @default(uuid())
+  tenantId     String
+  studentId    String
+  amountMinor  BigInt
+  method       PayMethod
+  reference    String?
+  paidOn       DateTime      @db.Date
   receivedById String
-  status      PaymentStatus @default(POSTED)
-  voidReason  String?
-  createdAt   DateTime      @default(now())
+  status       PaymentStatus @default(POSTED)
+  voidReason   String?
+  createdAt    DateTime      @default(now())
 
-  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  student     Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  receipt      Receipt?
+  allocations  PaymentAllocation[]
 
   @@unique([tenantId, method, reference])
 }
 
 model Certificate {
-  id           String     @id @default(uuid())
-  tenantId     String
-  studentId    String
-  batchId      String
-  number       String
-  issuedOn     DateTime   @db.Date
-  status       CertStatus @default(ISSUED)
-  verifyToken  String     @unique
-  pdfKey       String?
+  id            String     @id @default(uuid())
+  tenantId      String
+  studentId     String
+  batchId       String
+  number        String
+  issuedOn      DateTime   @db.Date
+  status        CertStatus @default(ISSUED)
+  verifyToken   String     @unique
+  pdfKey        String?
   revokedReason String?
-  createdAt    DateTime   @default(now())
+  createdAt     DateTime   @default(now())
 
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  batch        Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student       Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batch         Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, number])
+}
+
+model LedgerEntry {
+  id          String     @id @default(uuid())
+  tenantId    String
+  studentId   String
+  enrolmentId String?
+  kind        LedgerKind
+  amountMinor BigInt     // + charge, - payment/discount
+  refType     String     // "PAYMENT", "ENROLMENT", "VOID", "DISCOUNT"
+  refId       String
+  occurredOn  DateTime   @db.Date
+  createdAt   DateTime   @default(now())
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student     Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, occurredOn])
+}
+
+model Instalment {
+  id          String           @id @default(uuid())
+  tenantId    String
+  enrolmentId String
+  seq         Int
+  dueDate     DateTime         @db.Date
+  amountMinor BigInt
+  paidMinor   BigInt           @default(0)
+  status      InstalmentStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrolment   Enrolment        @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  allocations PaymentAllocation[]
+
+  @@unique([tenantId, enrolmentId, seq])
+}
+
+model PaymentAllocation {
+  id           String     @id @default(uuid())
+  tenantId     String
+  paymentId    String
+  instalmentId String
+  amountMinor  BigInt
+  createdAt    DateTime   @default(now())
+
+  payment      Payment    @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  instalment   Instalment @relation(fields: [instalmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, paymentId])
+}
+
+model Receipt {
+  id           String    @id @default(uuid())
+  tenantId     String
+  paymentId    String    @unique
+  number       Int       // Gapless sequential per tenant per Ethiopian year
+  year         Int       // e.g. 2017
+  printedAt    DateTime?
+  reprintCount Int       @default(0)
+  pdfKey       String?
+  createdAt    DateTime  @default(now())
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment      Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, year, number])
+}
+
+model ReceiptCounter {
+  tenantId String
+  year     Int
+  next     Int
+
+  @@id([tenantId, year])
 }
 
 model AuditLog {
