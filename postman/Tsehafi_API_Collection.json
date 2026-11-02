@@ -298,6 +298,30 @@
               "path": ["v1", "students", "{{studentId}}"]
             }
           }
+        },
+        {
+          "name": "Export Student Personal Data (Proclamation 1321 Art. 28)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/students/{{studentId}}/export-data",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "students", "{{studentId}}", "export-data"]
+            }
+          }
+        },
+        {
+          "name": "Anonymize Student Data (Right to Erasure Art. 31)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/students/{{studentId}}/anonymize",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "students", "{{studentId}}", "anonymize"]
+            }
+          }
         }
       ]
     },
