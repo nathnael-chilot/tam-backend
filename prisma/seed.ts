@@ -45,6 +45,13 @@ async function main() {
   // 3. Create Users & Memberships for each role
   const usersData = [
     {
+      name: 'Dawit G. Mariam',
+      nameAm: 'ዳዊት ገ/ማርያም',
+      email: 'demo@tsehafi.et',
+      phone: '+251911998877',
+      role: Role.OWNER,
+    },
+    {
       name: 'Abebe Kebede',
       nameAm: 'አበበ ከበደ',
       email: 'owner@lucy.edu.et',
