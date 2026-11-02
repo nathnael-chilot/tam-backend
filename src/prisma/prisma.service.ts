@@ -8,11 +8,23 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    super();
+    super({
+      log: [
+        { emit: 'event', level: 'query' },
+        { emit: 'stdout', level: 'error' },
+      ],
+    });
   }
 
   async onModuleInit() {
     await this.$connect();
+
+    // Slow-query telemetry: log warning if any query exceeds 200ms
+    (this as any).$on?.('query', (e: any) => {
+      if (e.duration > 200) {
+        console.warn(`⚠️ [Slow Query ${e.duration}ms]: ${e.query}`);
+      }
+    });
   }
 
   async onModuleDestroy() {

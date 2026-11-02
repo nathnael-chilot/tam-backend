@@ -303,6 +303,155 @@ export class StudentsService {
   }
 
   /**
+   * Export all personal data belonging to a student (Proclamation 1321/2024 Art. 28 - Right of Access)
+   */
+  async exportData(tenantId: string, id: string) {
+    const student = await this.prisma.student.findFirst({
+      where: { id, tenantId },
+      include: {
+        enrolments: {
+          include: {
+            batch: {
+              include: {
+                course: true,
+                trainer: true,
+                room: true,
+              },
+            },
+          },
+        },
+        payments: {
+          include: {
+            receipt: true,
+          },
+        },
+        certificates: true,
+        smsLogs: true,
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundException('Student not found in this academy');
+    }
+
+    const attendanceRecords = await this.prisma.attendanceRecord.findMany({
+      where: { studentId: id, tenantId },
+      include: { session: true },
+      orderBy: { markedAt: 'desc' },
+    });
+
+    return {
+      legalBasis: 'Ethiopian Personal Data Protection Proclamation 1321/2024 Art. 28 (Right of Access)',
+      exportedAt: new Date().toISOString(),
+      studentProfile: {
+        id: student.id,
+        studentNo: student.studentNo,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        firstNameAm: student.firstNameAm,
+        lastNameAm: student.lastNameAm,
+        sex: student.sex,
+        dob: student.dob,
+        phone: student.phone,
+        phoneNorm: student.phoneNorm,
+        guardianName: student.guardianName,
+        guardianPhone: student.guardianPhone,
+        address: student.address,
+        status: student.status,
+        smsConsent: student.smsConsent,
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt,
+      },
+      enrolments: student.enrolments.map((e) => ({
+        enrolmentId: e.id,
+        batchCode: e.batch.code,
+        courseName: e.batch.course.name,
+        courseNameAm: e.batch.course.nameAm,
+        feeMinor: e.feeMinor.toString(),
+        discountMinor: e.discountMinor.toString(),
+        status: e.status,
+        enrolledOn: e.enrolledOn,
+      })),
+      attendanceHistory: attendanceRecords.map((a) => ({
+        sessionId: a.sessionId,
+        date: a.session.date,
+        status: a.status,
+        note: a.note,
+        markedAt: a.markedAt,
+      })),
+      financialRecords: student.payments.map((p) => ({
+        paymentId: p.id,
+        amountMinor: p.amountMinor.toString(),
+        method: p.method,
+        reference: p.reference,
+        paidOn: p.paidOn,
+        status: p.status,
+        receiptNumber: p.receipt ? `#${p.receipt.number}/${p.receipt.year}` : undefined,
+      })),
+      certificates: student.certificates.map((c) => ({
+        certificateId: c.id,
+        certificateNo: c.number,
+        verificationToken: c.verifyToken,
+        issuedOn: c.issuedOn,
+        status: c.status,
+        revoked: c.status === 'REVOKED',
+      })),
+      communications: student.smsLogs.map((s) => ({
+        id: s.id,
+        recipientPhone: s.recipientPhone,
+        message: s.message,
+        segments: s.segments,
+        status: s.status,
+        sentAt: s.createdAt,
+      })),
+    };
+  }
+
+  /**
+   * Anonymize a student's personal data (Right to Erasure / Forgotten under Proclamation 1321/2024 Art. 31)
+   * Ledger and payment lines remain intact to satisfy Ethiopian Ministry of Revenues tax auditing requirements.
+   */
+  async anonymize(tenantId: string, id: string) {
+    const student = await this.prisma.student.findFirst({
+      where: { id, tenantId },
+    });
+
+    if (!student) {
+      throw new NotFoundException('Student not found in this academy');
+    }
+
+    const anonSuffix = student.id.substring(0, 8).toUpperCase();
+
+    const updated = await this.prisma.student.update({
+      where: { id },
+      data: {
+        firstName: 'Anonymized',
+        lastName: `Student-${anonSuffix}`,
+        firstNameAm: 'የተሰረዘ',
+        lastNameAm: `ተማሪ-${anonSuffix}`,
+        phone: null,
+        phoneNorm: null,
+        guardianName: null,
+        guardianPhone: null,
+        address: null,
+        photoKey: null,
+        smsConsent: false,
+        status: 'DROPPED',
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      message: 'Student personal data successfully anonymized in compliance with Proclamation 1321/2024',
+      studentId: updated.id,
+      studentNo: updated.studentNo,
+      status: updated.status,
+      deletedAt: updated.deletedAt,
+    };
+  }
+
+
+  /**
    * Bulk import students from parsed rows or an Excel/CSV file buffer
    */
   async importStudents(

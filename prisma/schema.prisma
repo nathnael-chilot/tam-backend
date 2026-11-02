@@ -228,6 +228,8 @@ model Student {
 
   @@unique([tenantId, studentNo])
   @@index([tenantId, phoneNorm])
+  @@index([tenantId, status])
+  @@index([tenantId, deletedAt])
 }
 
 model Course {
@@ -342,6 +344,8 @@ model Enrolment {
   instalments    Instalment[]
 
   @@unique([tenantId, studentId, batchId])
+  @@index([tenantId, status])
+  @@index([tenantId, batchId])
 }
 
 model AttendanceRecord {
@@ -360,6 +364,8 @@ model AttendanceRecord {
   session    Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, sessionId, studentId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, markedAt])
 }
 
 model Payment {
@@ -381,6 +387,9 @@ model Payment {
   allocations  PaymentAllocation[]
 
   @@unique([tenantId, method, reference])
+  @@index([tenantId, studentId])
+  @@index([tenantId, paidOn])
+  @@index([tenantId, status])
 }
 
 model Certificate {
@@ -420,6 +429,7 @@ model LedgerEntry {
 
   @@index([tenantId, studentId])
   @@index([tenantId, occurredOn])
+  @@index([tenantId, kind])
 }
 
 model Instalment {

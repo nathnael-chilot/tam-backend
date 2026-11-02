@@ -73,6 +73,22 @@ export class StudentsController {
     return this.studentsService.findOne(tenantId, id);
   }
 
+  @Get(':id/export-data')
+  exportData(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.studentsService.exportData(tenantId, id);
+  }
+
+  @Post(':id/anonymize')
+  anonymize(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.studentsService.anonymize(tenantId, id);
+  }
+
   @Patch(':id')
   update(
     @CurrentTenant() tenantId: string,

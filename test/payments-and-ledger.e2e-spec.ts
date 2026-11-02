@@ -122,6 +122,7 @@ describe('Payments & Money Core Engine (e2e)', () => {
   });
 
   const testRef = `TLB-${Date.now()}`;
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   it('2. Records payment with santims conversion and issues gapless receipt #YYYY/0001', async () => {
     const res = await request(app.getHttpServer())
@@ -132,7 +133,7 @@ describe('Payments & Money Core Engine (e2e)', () => {
         amount: 2000, // 2,000 ETB
         method: 'TELEBIRR',
         reference: testRef,
-        paidOn: '2026-10-30',
+        paidOn: todayStr,
         notes: 'Partial payment',
       })
       .expect(201);
@@ -156,7 +157,7 @@ describe('Payments & Money Core Engine (e2e)', () => {
         amount: 500,
         method: 'TELEBIRR',
         reference: testRef, // Duplicate reference
-        paidOn: '2026-10-30',
+        paidOn: todayStr,
       })
       .expect(409);
   });
@@ -169,7 +170,7 @@ describe('Payments & Money Core Engine (e2e)', () => {
         studentId,
         amount: 2500, // Fully clears remaining 2,500 ETB
         method: 'CASH',
-        paidOn: '2026-10-30',
+        paidOn: todayStr,
       })
       .expect(201);
 
